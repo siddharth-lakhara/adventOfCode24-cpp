@@ -111,23 +111,52 @@ bool is_correct_page_order_2(vector<int>& page_order, unordered_map<int, unorder
 }
 
 vector<int> fix_page_order(vector<int>& page_order, unordered_map<int, unordered_set<int>>& page_order_rules) {
-    list<int> final_order;
+    // create the subgraph from the bigger graph
+    unordered_set<int> pages_in_update(page_order.begin(), page_order.end());
 
-    for (int idx = 0; idx<page_order.size(); idx++ ) {
-        int curr_page = page_order[idx];
-        auto it = final_order.begin();
-        for (; it != final_order.end(); it++) {
-            int check_page = *it;
-            if (page_order_rules[check_page].find(curr_page) != page_order_rules[check_page].end()) {
-                break;
+    unordered_map<int, unordered_set<int>> adj_list;
+    unordered_map<int, int> in_degree;
+    
+    for (int page : page_order) {
+        adj_list[page] = unordered_set<int>();
+        in_degree[page] = 0;
+    }
+    
+    for (int page : page_order) {
+        unordered_set<int> dependent_pages = page_order_rules[page];
+        for (int dep_page: dependent_pages) {
+            if (pages_in_update.find(dep_page) != pages_in_update.end()) {
+                adj_list[page].insert(dep_page);
+                in_degree[dep_page]++;
             }
         }
-
-        final_order.insert(it, curr_page);
     }
+    
+    // apply kahn's algorithm for topo sort
+    list<int> fixed_order;
+    list<int> queue;
+    
+    for (auto& pair : in_degree) {
+        if (pair.second == 0) {
+            queue.push_back(pair.first);
+        }
+    }
+    
+    // Process nodes in topological order
+    while (!queue.empty()) {
+        int current = queue.front();
+        queue.pop_front();
+        fixed_order.push_back(current);
 
-    return vector<int> {std::make_move_iterator(std::begin(final_order)),
-                            std::make_move_iterator(std::end(final_order))};
+        for (int neighbor : adj_list[current]) {
+            in_degree[neighbor]--;
+            if (in_degree[neighbor] == 0) {
+                queue.push_back(neighbor);
+            }
+        }
+    }
+    
+    return vector<int>(fixed_order.begin(), fixed_order.end());
 }
 
 void solve_part1() {
