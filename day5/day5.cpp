@@ -3,8 +3,10 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <list>
 using namespace std;
 
+// maps page2 -> page1
 unordered_map<int, unordered_set<int>> read_page_order_rules() {
     unordered_map<int, unordered_set<int>> page_order_rules;
     string line;
@@ -16,7 +18,7 @@ unordered_map<int, unordered_set<int>> read_page_order_rules() {
 
         stringstream ss(line);
         string buf;
-        
+
         getline(ss, buf, '|');
         int page1 = atoi(buf.c_str());
 
@@ -25,6 +27,9 @@ unordered_map<int, unordered_set<int>> read_page_order_rules() {
 
         if (page_order_rules.find(page2) == page_order_rules.end()) {
             page_order_rules[page2] = unordered_set<int>();
+        }
+        if (page_order_rules.find(page1) == page_order_rules.end()) {
+            page_order_rules[page1] = unordered_set<int>();
         }
         page_order_rules[page2].insert(page1);
     }
@@ -47,6 +52,32 @@ vector<vector<int>> read_page_orders() {
     return page_orders;
 }
 
+void explore_curr_page_order(unordered_map<int, unordered_set<int>>& page_order_rules, unordered_set<int>& visited_nodes, int curr_node) {
+    if (visited_nodes.find(curr_node) != visited_nodes.end()) {
+        // curr_node is already visited
+        return;
+    }
+
+    visited_nodes.insert(curr_node);
+    unordered_set<int> page_orders = page_order_rules.at(curr_node);
+    for (int child_page : page_orders) {
+        explore_curr_page_order(page_order_rules, visited_nodes, child_page);
+
+        for (auto p : page_order_rules.at(child_page)) {
+            page_order_rules[curr_node].insert(p);
+        }
+    }
+}
+
+void explore_all_page_order_rules(unordered_map<int, unordered_set<int>>& page_order_rules, unordered_set<int>& visited_nodes) {
+    for (auto it = page_order_rules.begin(); it != page_order_rules.end(); it++) {
+        int node = it->first;
+        if (visited_nodes.find(node) == visited_nodes.end()) {
+            explore_curr_page_order(page_order_rules, visited_nodes, node);
+        }
+    }
+}
+
 bool is_correct_page_order(vector<int>& page_order, unordered_map<int, unordered_set<int>>& page_order_rules) {
     unordered_set<int> unallowed_nums;
     for (int page: page_order) {
@@ -65,6 +96,40 @@ bool is_correct_page_order(vector<int>& page_order, unordered_map<int, unordered
     return true;
 }
 
+bool is_correct_page_order_2(vector<int>& page_order, unordered_map<int, unordered_set<int>>& page_order_rules) {
+    for (int i=0; i<page_order.size(); i++) {
+        for (int j=0; j<i; j++) {
+            int curr_page = page_order[i];
+            int check_page = page_order[j];
+            if (page_order_rules[check_page].find(curr_page) != page_order_rules[check_page].end()) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+vector<int> fix_page_order(vector<int>& page_order, unordered_map<int, unordered_set<int>>& page_order_rules) {
+    list<int> final_order;
+
+    for (int idx = 0; idx<page_order.size(); idx++ ) {
+        int curr_page = page_order[idx];
+        auto it = final_order.begin();
+        for (; it != final_order.end(); it++) {
+            int check_page = *it;
+            if (page_order_rules[check_page].find(curr_page) != page_order_rules[check_page].end()) {
+                break;
+            }
+        }
+
+        final_order.insert(it, curr_page);
+    }
+
+    return vector<int> {std::make_move_iterator(std::begin(final_order)),
+                            std::make_move_iterator(std::end(final_order))};
+}
+
 void solve_part1() {
     unordered_map<int, unordered_set<int>> page_order_rules = read_page_order_rules();
     vector<vector<int>> page_orders = read_page_orders();
@@ -72,7 +137,7 @@ void solve_part1() {
     long sum_mid_page_nums = 0;
     for (vector<int> page_order : page_orders) {
         if (is_correct_page_order(page_order, page_order_rules)) {
-            sum_mid_page_nums += page_order.at(page_order.size()/2);
+            sum_mid_page_nums += page_order.at(page_order.size() / 2);
         }
     }
 
@@ -80,12 +145,22 @@ void solve_part1() {
 }
 
 void solve_part2() {
-    
+    unordered_map<int, unordered_set<int>> page_order_rules = read_page_order_rules();
+    vector<vector<int>> page_orders = read_page_orders();
+
+    long sum_mid_page_nums = 0;
+    for (vector<int> page_order : page_orders) {
+        if (!is_correct_page_order_2(page_order, page_order_rules)) {
+            vector<int> correct_page_order = fix_page_order(page_order, page_order_rules);
+            sum_mid_page_nums += correct_page_order.at(correct_page_order.size() / 2);
+        }
+    }
+
+    cout << sum_mid_page_nums << "\n";
 }
 
-int main()
-{
-    solve_part1();
-    // solve_part2();
+int main() {
+    // solve_part1();
+    solve_part2();
     return 0;
 }
