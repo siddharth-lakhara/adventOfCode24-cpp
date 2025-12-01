@@ -36,18 +36,49 @@ pair<vector<string>, Coordinates> read_map() {
     return {map, c};
 }
 
-long count_unique_steps(vector<string>& grid, Coordinates coords) {
-    long unique_steps = 0;
-
-    while ()
-    return unique_steps;
-}
-
 void solve_part1() {
     Direction curr_direction = Direction::UP;
-    auto [map, coords] = read_map();
+    long unique_steps = 0;
 
-    count_unique_steps(map, coords)
+    auto [grid, coords] = read_map();
+    const int GRID_H = grid.size();
+    const int GRID_W = grid[0].size();
+    grid[coords.x][coords.y] = '.';
+
+    while (coords.x >= 0 && coords.x < GRID_W && coords.y >= 0 && coords.y < GRID_H) {
+        if (grid[coords.x][coords.y] == '.') {
+            grid[coords.x][coords.y] = 'X';
+            unique_steps++;
+        }
+
+        if (curr_direction == Direction::UP) {
+            if (coords.x>0 && grid[coords.x-1][coords.y] == '#') {
+                curr_direction = Direction::RIGHT;
+            } else {
+                coords.x--;
+            }
+        } else if (curr_direction == Direction::DOWN) {
+            if (coords.x < GRID_H-1 && grid[coords.x+1][coords.y] == '#') {
+                curr_direction = Direction::LEFT;
+            } else {
+                coords.x++;
+            }
+        } else if (curr_direction == Direction::LEFT) {
+            if (coords.y > 0 && grid[coords.x][coords.y - 1] == '#') {
+                curr_direction = Direction::UP;
+            } else {
+                coords.y--;
+            }
+        } else {
+            if (coords.y < GRID_W-1 && grid[coords.x][coords.y+1] == '#') {
+                curr_direction = Direction::DOWN;
+            } else {
+                coords.y++;
+            }
+        }
+    }
+
+    cout << "Answer: " << unique_steps << endl;
 }
 
 void solve_part2() {
